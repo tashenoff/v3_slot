@@ -1,0 +1,9 @@
+{
+  "symbols": [
+    { "symbol": "A", "weight": 10 },
+    { "symbol": "B", "weight": 6 },
+    { "symbol": "C", "weight": 4 },
+    { "symbol": "D", "weight": 2 },
+    { "symbol": "E", "weight": 1 }
+  ]
+} 
