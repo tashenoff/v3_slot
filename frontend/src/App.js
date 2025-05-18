@@ -3,6 +3,8 @@ import axios from 'axios';
 import SlotGrid from './components/SlotGrid';
 import BetSelector from './components/BetSelector';
 import PayTable from './components/PayTable';
+import StatisticsModal from './components/StatisticsModal';
+import LoadingSpinner from './components/LoadingSpinner';
 
 // Базовый URL API
 const API_BASE_URL = 'http://127.0.0.1:5000';
@@ -17,6 +19,11 @@ const App = () => {
   const [serverStatus, setServerStatus] = useState('checking'); // 'checking', 'online', 'offline'
   const [paylines, setPaylines] = useState([]); // Информация о линиях выплат
   const [showPaytable, setShowPaytable] = useState(false); // Показывать ли таблицу выплат
+  
+  // Состояния для автоспинов
+  const [isAutoSpinning, setIsAutoSpinning] = useState(false);
+  const [autoSpinStats, setAutoSpinStats] = useState(null);
+  const [showStatistics, setShowStatistics] = useState(false);
 
   // Проверяем доступность сервера при загрузке и получаем информацию о линиях выплат
   useEffect(() => {
@@ -90,9 +97,55 @@ const App = () => {
     }
   };
 
+  // Запуск автоспинов
+  const handleAutoSpin = async () => {
+    if (serverStatus !== 'online') {
+      alert('Сервер недоступен. Пожалуйста, попробуйте позже.');
+      return;
+    }
+
+    if (balance < bet) {
+      alert('Недостаточно средств!');
+      return;
+    }
+    
+    setIsAutoSpinning(true);
+    
+    try {
+      const response = await axios.post(`${API_BASE_URL}/auto_spin`, { 
+        count: 1000, // Количество автоспинов
+        bet 
+      });
+      
+      setAutoSpinStats(response.data);
+      
+      // Обновляем баланс после автоспинов
+      setBalance(prevBalance => prevBalance - response.data.total_bet + response.data.total_win);
+      
+      // Показываем статистику
+      setShowStatistics(true);
+      setIsAutoSpinning(false);
+    } catch (error) {
+      console.error('Ошибка автоспинов:', error);
+      setIsAutoSpinning(false);
+      
+      if (error.code === 'ERR_NETWORK') {
+        setServerStatus('offline');
+        alert('Произошла ошибка соединения с сервером. Проверьте, что сервер запущен и доступен.');
+      } else {
+        alert('Произошла ошибка при выполнении автоспинов. Пожалуйста, попробуйте снова.');
+      }
+    }
+  };
+
   // Переключение отображения таблицы выплат
   const togglePaytable = () => {
     setShowPaytable(!showPaytable);
+  };
+
+  // Закрыть модальное окно статистики
+  const closeStatistics = () => {
+    setShowStatistics(false);
   };
 
   return (
@@ -123,11 +176,23 @@ const App = () => {
           <button 
             className="spin-btn" 
             onClick={handleSpin} 
-            disabled={isSpinning || balance < bet || serverStatus !== 'online'}
+            disabled={isSpinning || isAutoSpinning || balance < bet || serverStatus !== 'online'}
           >
             {isSpinning ? 'Вращение...' : serverStatus === 'checking' ? 'Подключение...' : 'Крутить!'}
           </button>
+          
+          <button 
+            className="auto-spin-btn" 
+            onClick={handleAutoSpin} 
+            disabled={isSpinning || isAutoSpinning || balance < bet || serverStatus !== 'online'}
+          >
+            {isAutoSpinning ? 'Выполняется...' : '1000 автоспинов'}
+          </button>
         </div>
+        
+        {isAutoSpinning && (
+          <LoadingSpinner message="Выполняются автоспины..." />
+        )}
         
         {wins.length > 0 && (
           <div className="wins-container">
@@ -156,6 +221,10 @@ const App = () => {
         </button>
         
         {showPaytable && <PayTable bet={bet} />}
+        
+        {showStatistics && autoSpinStats && (
+          <StatisticsModal stats={autoSpinStats} onClose={closeStatistics} />
+        )}
       </div>
     </div>
   );
