@@ -1,9 +1,9 @@
 {
   "symbols": [
-    { "symbol": "A", "weight": 10 },
-    { "symbol": "B", "weight": 6 },
-    { "symbol": "C", "weight": 4 },
-    { "symbol": "D", "weight": 2 },
-    { "symbol": "E", "weight": 1 }
+    { "symbol": "A", "weight": 40 },
+    { "symbol": "B", "weight": 25 },
+    { "symbol": "C", "weight": 30 },
+    { "symbol": "D", "weight": 15 },
+    { "symbol": "E", "weight": 5 }
   ]
 } 

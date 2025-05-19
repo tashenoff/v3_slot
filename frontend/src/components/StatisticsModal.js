@@ -3,6 +3,15 @@ import React from 'react';
 const StatisticsModal = ({ stats, onClose }) => {
   if (!stats) return null;
 
+  // Названия линий для отображения
+  const lineNames = [
+    "Верхняя горизонталь", 
+    "Средняя горизонталь", 
+    "Нижняя горизонталь", 
+    "Диагональ ↘", 
+    "Диагональ ↗"
+  ];
+
   return (
     <div className="statistics-modal-overlay">
       <div className="statistics-modal">
@@ -12,6 +21,29 @@ const StatisticsModal = ({ stats, onClose }) => {
         </div>
         
         <div className="statistics-content">
+          <div className="stats-section active-lines-stats">
+            <h3>Активные линии для анализа</h3>
+            <div className="active-lines-list">
+              {stats.active_lines.map(lineIndex => (
+                <div key={lineIndex} className={`line-name line-${lineIndex}`}>
+                  {lineNames[lineIndex]}
+                </div>
+              ))}
+            </div>
+            <div className="stats-item">
+              <div className="stats-label">Всего активных линий:</div>
+              <div className="stats-value">{stats.lines_count}</div>
+            </div>
+            <div className="stats-item">
+              <div className="stats-label">Ставка на линию:</div>
+              <div className="stats-value">{stats.bet}</div>
+            </div>
+            <div className="stats-item">
+              <div className="stats-label">Ставка за спин:</div>
+              <div className="stats-value">{stats.bet_per_spin}</div>
+            </div>
+          </div>
+          
           <div className="stats-section main-stats">
             <h3>Основные показатели</h3>
             <div className="stats-grid">

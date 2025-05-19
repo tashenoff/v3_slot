@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import SlotGrid from './components/SlotGrid';
 import BetSelector from './components/BetSelector';
+import LineSelector from './components/LineSelector';
 import PayTable from './components/PayTable';
 import StatisticsModal from './components/StatisticsModal';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -11,9 +12,11 @@ const API_BASE_URL = 'http://127.0.0.1:5000';
 
 const App = () => {
   const [bet, setBet] = useState(10);
+  const [activeLines, setActiveLines] = useState([0, 1, 2, 3, 4]); // По умолчанию все линии активны
   const [grid, setGrid] = useState([]);
   const [wins, setWins] = useState([]); // Список выигрышных линий
   const [totalWin, setTotalWin] = useState(0); // Общий выигрыш
+  const [totalBet, setTotalBet] = useState(bet * activeLines.length); // Общая ставка (ставка * кол-во линий)
   const [balance, setBalance] = useState(1000);
   const [isSpinning, setIsSpinning] = useState(false);
   const [serverStatus, setServerStatus] = useState('checking'); // 'checking', 'online', 'offline'
@@ -24,6 +27,12 @@ const App = () => {
   const [isAutoSpinning, setIsAutoSpinning] = useState(false);
   const [autoSpinStats, setAutoSpinStats] = useState(null);
   const [showStatistics, setShowStatistics] = useState(false);
+
+  // Обновляем общую ставку при изменении ставки или активных линий
+  useEffect(() => {
+    const newTotalBet = bet * activeLines.length;
+    setTotalBet(newTotalBet);
+  }, [bet, activeLines]);
 
   // Проверяем доступность сервера при загрузке и получаем информацию о линиях выплат
   useEffect(() => {
@@ -57,18 +66,21 @@ const App = () => {
       return;
     }
 
-    if (balance < bet) {
+    if (balance < totalBet) {
       alert('Недостаточно средств!');
       return;
     }
     
     setIsSpinning(true);
-    setBalance(prevBalance => prevBalance - bet);
+    setBalance(prevBalance => prevBalance - totalBet);
     setWins([]);
     setTotalWin(0);
     
     try {
-      const response = await axios.post(`${API_BASE_URL}/spin`, { bet });
+      const response = await axios.post(`${API_BASE_URL}/spin`, { 
+        bet, 
+        active_lines: activeLines 
+      });
       
       // Добавляем небольшую задержку для эффекта вращения
       setTimeout(() => {
@@ -88,7 +100,7 @@ const App = () => {
       console.error('Ошибка запроса:', error);
       setIsSpinning(false);
       // Возвращаем ставку в случае ошибки
-      setBalance(prevBalance => prevBalance + bet);
+      setBalance(prevBalance => prevBalance + totalBet);
       
       if (error.code === 'ERR_NETWORK') {
         setServerStatus('offline');
@@ -104,7 +116,7 @@ const App = () => {
       return;
     }
 
-    if (balance < bet) {
+    if (balance < totalBet) {
       alert('Недостаточно средств!');
       return;
     }
@@ -114,7 +126,8 @@ const App = () => {
     try {
       const response = await axios.post(`${API_BASE_URL}/auto_spin`, { 
         count: 1000, // Количество автоспинов
-        bet 
+        bet,
+        active_lines: activeLines
       });
       
       setAutoSpinStats(response.data);
@@ -168,15 +181,28 @@ const App = () => {
         />
         
         <div className="controls">
-          <div>
+          <div className="bet-section">
             <p>Выберите ставку:</p>
             <BetSelector bet={bet} setBet={setBet} />
+            
+            <LineSelector activeLines={activeLines} setActiveLines={setActiveLines} />
+            
+            <div className="bet-info">
+              <div className="bet-per-line">
+                <div className="bet-label">Ставка на линию</div>
+                <div className="bet-value">{bet}</div>
+              </div>
+              <div className="total-bet">
+                <div className="bet-label">Общая ставка</div>
+                <div className="bet-value">{totalBet}</div>
+              </div>
+            </div>
           </div>
           
           <button 
             className="spin-btn" 
             onClick={handleSpin} 
-            disabled={isSpinning || isAutoSpinning || balance < bet || serverStatus !== 'online'}
+            disabled={isSpinning || isAutoSpinning || balance < totalBet || serverStatus !== 'online'}
           >
             {isSpinning ? 'Вращение...' : serverStatus === 'checking' ? 'Подключение...' : 'Крутить!'}
           </button>
@@ -184,7 +210,7 @@ const App = () => {
           <button 
             className="auto-spin-btn" 
             onClick={handleAutoSpin} 
-            disabled={isSpinning || isAutoSpinning || balance < bet || serverStatus !== 'online'}
+            disabled={isSpinning || isAutoSpinning || balance < totalBet || serverStatus !== 'online'}
           >
             {isAutoSpinning ? 'Выполняется...' : '1000 автоспинов'}
           </button>
